@@ -11,6 +11,7 @@ import logging
 import argparse
 
 from flask import Flask, current_app
+from werkzeug.middleware.proxy_fix import ProxyFix
 from brother_ql.models import ALL_MODELS
 
 from . import fonts
@@ -55,6 +56,7 @@ def _log_level(value: str) -> str:
 # config files, command-line arguments (see parse_args) take precedence over
 # them.
 ENV_OVERRIDES = {
+    'SERVER_PORT': _positive_int,
     'PRINTER_MODEL': str,
     'PRINTER_PRINTER': str,
     'PRINTERS': _printer_list,
@@ -100,6 +102,11 @@ def create_app(config_class=Config) -> Flask:
 
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
+
+    # Allows this app to be reverse-proxied under a path prefix (e.g. by the
+    # sinatra print server's /brother switcher) while still generating
+    # correct url_for() links, via the X-Forwarded-Prefix/-Host headers.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_host=1)
 
     return app
 
