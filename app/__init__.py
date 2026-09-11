@@ -10,6 +10,7 @@ import sys
 import argparse
 
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 from brother_ql.models import ALL_MODELS
 
 from . import fonts
@@ -40,6 +41,11 @@ def create_app(config_class=Config) -> Flask:
 
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
+
+    # Allows this app to be reverse-proxied under a path prefix (e.g. by the
+    # sinatra print server's /brother switcher) while still generating
+    # correct url_for() links, via the X-Forwarded-Prefix/-Host headers.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_prefix=1, x_host=1)
 
     return app
 
