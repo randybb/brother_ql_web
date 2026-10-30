@@ -700,6 +700,8 @@ function switchSettings(printer) {
     if (localStorage.getItem(LS_KEY)) {
         restoreAllSettingsFromLocalStorage();
     } else {
+        // The loaded label size before the first save, not as an undo step
+        selectLoadedLabelSize();
         saveAllSettingsToLocalStorage();
     }
     updateUndoButton();
