@@ -587,6 +587,7 @@ function loadedLabel() {
 }
 
 function updatePrinterStatus() {
+    selectLoadedLabelSize();
     filterLabelSizes(printer_status.model);
     if ($('#label_size option:selected').val().includes('red')) {
         $(".red-support").show();
@@ -618,7 +619,8 @@ function updatePrinterStatus() {
     }
 }
 
-// Select the label size loaded in the printer, unless the selected one fits
+// Follow the label size loaded in the printer, unless the selected one fits
+// (e.g. a black/red variant). The select matters only for unknown media.
 function selectLoadedLabelSize() {
     const fits = (option) => option &&
         parseInt(option.dataset.x) === printer_status.media_width &&
@@ -1216,7 +1218,6 @@ $(document).ready(function () {
         missingPrinter = null;
         switchSettings(this.value);
         printer_status = (window.available_printers || []).find(p => p.path === this.value) || printer_status;
-        selectLoadedLabelSize();
         updatePrinterStatus();
     });
     $('#repoSaveBtn').off('click').on('click', repoSaveCurrent);
