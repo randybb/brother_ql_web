@@ -479,11 +479,12 @@ def get_ptr_status(config: Config):
     try:
         if config.get('PRINTERS'):
             # The configured printers, no detection. Each keeps its configured
-            # model, a failed query must not move it to another printer.
+            # model, a failed query must not move it to another printer. The
+            # simulator is listed only when configured, e.g. QL-700=simulation.
             printers = []
             for model, device in config['PRINTERS']:
                 try:
-                    state = query_status(device, model)
+                    state = SIMULATOR_PRINTER.copy() if device == 'simulation' else query_status(device, model)
                 except Exception as e:
                     logger.info('Status query of %s failed: %s', device, e)
                     state = _failed_printer_state(device, e)
@@ -493,7 +494,7 @@ def get_ptr_status(config: Config):
             return {
                 **status,
                 **printers[0],
-                'printers': printers + [SIMULATOR_PRINTER.copy()],
+                'printers': printers,
                 'selected': printers[0]['path'],
             }
         # If device_specifier is the default '?', try to auto-detect multiple printers
