@@ -614,6 +614,18 @@ function updatePrinterStatus() {
     }
 }
 
+// Select the label size loaded in the printer, unless the selected one fits
+function selectLoadedLabelSize() {
+    const fits = (option) => option &&
+        parseInt(option.dataset.x) === printer_status.media_width &&
+        parseInt(option.dataset.y) === printer_status.media_length &&
+        option.dataset.models.split(',').includes(printer_status.model);
+    const select = document.getElementById('label_size');
+    if (!select || fits(select.selectedOptions[0])) return;
+    const loaded = Array.from(select.options).find(fits);
+    if (loaded) $(select).val(loaded.value).trigger('change');
+}
+
 // The printer chosen by the user or restored from the settings. If it is not
 // available, another printer is used and a warning is shown until it is back.
 var preferredPrinter = null;
@@ -1186,6 +1198,9 @@ $(document).ready(function () {
         preferredPrinter = this.value;
         missingPrinter = null;
         switchSettings(this.value);
+        printer_status = (window.available_printers || []).find(p => p.path === this.value) || printer_status;
+        selectLoadedLabelSize();
+        updatePrinterStatus();
     });
     $('#repoSaveBtn').off('click').on('click', repoSaveCurrent);
     $('.repo-search').on('input', filterRepoList);
