@@ -660,8 +660,12 @@ async function getPrinterStatus() {
 
 // --- Local Storage Save/Restore/Export/Import/Reset ---
 const MAX_HISTORY = 40;
-const LS_KEY = 'labeldesigner_settings_v1';
-const LS_HISTORY_KEY = 'labeldesigner_settings_history_v1';
+// Several instances reverse-proxied under one origin (/brother/ql700/...)
+// would share localStorage, so key the settings by the proxy prefix.
+// Direct access has no prefix and keeps the original keys.
+const LS_PREFIX = url_for_print.split('/labeldesigner/')[0];
+const LS_KEY = 'labeldesigner_settings_v1' + LS_PREFIX;
+const LS_HISTORY_KEY = 'labeldesigner_settings_history_v1' + LS_PREFIX;
 var current_restoring = false;
 function saveAllSettingsToLocalStorage() {
     const data = {};
