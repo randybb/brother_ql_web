@@ -805,9 +805,10 @@ function restoreAllSettingsFromLocalStorage() {
         if (!(key in data)) return;
         if (this.id === 'printer') {
             // The printer list arrives with the next status query, the stored
-            // printer is chosen then if it is available
-            preferredPrinter = data[key] || null;
-            if (Array.from(this.options).some(o => o.value === data[key])) this.value = data[key];
+            // printer is chosen then if it is available. Settings of a printer
+            // always belong to that printer, whatever printer they name.
+            preferredPrinter = settingsPrinter || data[key] || null;
+            if (Array.from(this.options).some(o => o.value === preferredPrinter)) this.value = preferredPrinter;
             return;
         }
         if (this.tagName === 'SELECT' && !Array.from(this.options).some(o => o.value == data[key])) {
