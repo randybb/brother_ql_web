@@ -1220,6 +1220,7 @@ $(document).ready(function () {
         switchSettings(this.value);
         printer_status = (window.available_printers || []).find(p => p.path === this.value) || printer_status;
         updatePrinterStatus();
+        preview();
     });
     $('#repoSaveBtn').off('click').on('click', repoSaveCurrent);
     $('.repo-search').on('input', filterRepoList);
