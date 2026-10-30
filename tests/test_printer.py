@@ -283,3 +283,18 @@ def test_detected_printer_busy_before_first_answer_has_unknown_model(client, mon
     lp0 = next(p for p in status['printers'] if p['path'] == DEVICE)
     assert lp0['status_type'] == 'Printing'
     assert lp0['model'] == 'Unknown'
+
+
+def test_configured_printers(client):
+    from app.labeldesigner import routes
+    LP1 = 'file:///dev/usb/lp1'
+    client.application.config['PRINTERS'] = [('QL-700', DEVICE), ('QL-1100', LP1)]
+    status = client.get('/labeldesigner/api/printer_status').get_json()
+    assert [(p['model'], p['path']) for p in status['printers']] == \
+        [('QL-700', DEVICE), ('QL-1100', LP1), ('QL-800', 'simulation')]
+    assert status['selected'] == DEVICE
+    with client.application.test_request_context():
+        # The model of a listed printer is the configured one, unless requested
+        assert routes._printer(LP1, None) == (LP1, 'QL-1100')
+        assert routes._printer(None, None) == (DEVICE, 'QL-700')
+        assert routes._printer(LP1, 'QL-800') == (LP1, 'QL-800')
