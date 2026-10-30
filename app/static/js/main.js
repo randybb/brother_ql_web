@@ -1200,8 +1200,9 @@ $(document).ready(function () {
     $('#printer').on('change', function () {
         preferredPrinter = this.value;
         missingPrinter = null;
-        switchSettings(this.value);
+        // The status first, restoring the settings already updates the preview
         printer_status = (window.available_printers || []).find(p => p.path === this.value) || printer_status;
+        switchSettings(this.value);
         updatePrinterStatus();
         preview();
     });
