@@ -84,3 +84,15 @@ def test_navbar_without_build_info(monkeypatch, commit, date):
     monkeypatch.setattr(build_info, '_checkout_commit', lambda: '')
     html = create_app().test_client().get('/labeldesigner/').get_data(as_text=True)
     assert 'id="buildInfo"' not in html
+
+
+def test_printers_from_environment(monkeypatch):
+    monkeypatch.setenv('PRINTERS', 'QL-700=usb://0x04f9:0x2042/L9Z378866, QL-1100=file:///dev/usb/lp1')
+    assert create_app().config['PRINTERS'] == [
+        ('QL-700', 'usb://0x04f9:0x2042/L9Z378866'),
+        ('QL-1100', 'file:///dev/usb/lp1'),
+    ]
+    for value in ('QL-9999=file:///dev/usb/lp0', 'QL-700', 'QL-700='):
+        monkeypatch.setenv('PRINTERS', value)
+        with pytest.raises(ValueError):
+            create_app()

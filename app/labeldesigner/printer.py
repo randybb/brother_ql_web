@@ -477,6 +477,25 @@ def get_ptr_status(config: Config):
         "red_support": False
     }
     try:
+        if config.get('PRINTERS'):
+            # The configured printers, no detection. Each keeps its configured
+            # model, a failed query must not move it to another printer.
+            printers = []
+            for model, device in config['PRINTERS']:
+                try:
+                    state = query_status(device, model)
+                except Exception as e:
+                    logger.info('Status query of %s failed: %s', device, e)
+                    state = _failed_printer_state(device, e)
+                state.update({'path': device, 'model': model})
+                state['red_support'] = model in [m.identifier for m in ALL_MODELS if m.two_color]
+                printers.append(state)
+            return {
+                **status,
+                **printers[0],
+                'printers': printers + [SIMULATOR_PRINTER.copy()],
+                'selected': printers[0]['path'],
+            }
         # If device_specifier is the default '?', try to auto-detect multiple printers
         if device_specifier == '?':
             now = time.time()

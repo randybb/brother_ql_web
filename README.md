@@ -159,6 +159,15 @@ services:
 
 The container will automatically show printers when they become available.
 
+Or, to list several printers of different models yourself (no detection, each printer keeps its model and its own label settings in the browser):
+
+``` yaml
+    environment:
+      - PRINTERS=QL-700=usb://0x04f9:0x2042/L9Z378866,QL-1100=file:///dev/usb/lp1
+```
+
+Requests that name no printer go to the first one.
+
 To build the image locally:
 
 ```bash

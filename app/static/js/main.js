@@ -645,6 +645,9 @@ async function getPrinterStatus() {
                 select.value = data.printers[0].path;
             }
             missingPrinter = cur && select.value !== cur ? cur : null;
+            // Settings stored before a printer was chosen belong to the
+            // printer used so far
+            if (settingsRestored && settingsPrinter === null) switchSettings(select.value);
         }
         // Choose active printer status based on the select value
         const chosenPath = (document.getElementById('printer') || {}).value || (data.selected || (data.printers[0] && data.printers[0].path));
@@ -660,8 +663,33 @@ async function getPrinterStatus() {
 
 // --- Local Storage Save/Restore/Export/Import/Reset ---
 const MAX_HISTORY = 40;
-const LS_KEY = 'labeldesigner_settings_v1';
-const LS_HISTORY_KEY = 'labeldesigner_settings_history_v1';
+// Every printer has its own settings and undo history. Settings stored
+// before a printer was chosen (or before this) keep the original keys.
+const LS_PRINTER_KEY = 'labeldesigner_printer_v1';
+var LS_KEY, LS_HISTORY_KEY;
+var settingsPrinter = null;
+var settingsRestored = false;
+function useSettingsOf(printer) {
+    settingsPrinter = printer || null;
+    const suffix = settingsPrinter ? '@' + settingsPrinter : '';
+    LS_KEY = 'labeldesigner_settings_v1' + suffix;
+    LS_HISTORY_KEY = 'labeldesigner_settings_history_v1' + suffix;
+    try { localStorage.setItem(LS_PRINTER_KEY, settingsPrinter || ''); } catch { }
+}
+useSettingsOf(localStorage.getItem(LS_PRINTER_KEY));
+
+// Show the settings of another printer. One used for the first time starts
+// with the current settings.
+function switchSettings(printer) {
+    if (!printer || printer === settingsPrinter) return;
+    useSettingsOf(printer);
+    if (localStorage.getItem(LS_KEY)) {
+        restoreAllSettingsFromLocalStorage();
+    } else {
+        saveAllSettingsToLocalStorage();
+    }
+    updateUndoButton();
+}
 var current_restoring = false;
 function saveAllSettingsToLocalStorage() {
     const data = {};
@@ -1157,6 +1185,7 @@ $(document).ready(function () {
     $('#printer').on('change', function () {
         preferredPrinter = this.value;
         missingPrinter = null;
+        switchSettings(this.value);
     });
     $('#repoSaveBtn').off('click').on('click', repoSaveCurrent);
     $('.repo-search').on('input', filterRepoList);
@@ -1216,6 +1245,7 @@ function init2() {
     // Restore settings on load
     set_all_inputs_default();
     restoreAllSettingsFromLocalStorage();
+    settingsRestored = true;
 
     // Save on change
     $(document).on('change input', 'input, select, textarea', function () {
