@@ -166,7 +166,7 @@ Or, to list several printers of different models yourself (no detection, each pr
       - PRINTERS=QL-700=usb://0x04f9:0x2042/L9Z378866,QL-1100=file:///dev/usb/lp1
 ```
 
-Requests that name no printer go to the first one.
+Requests that name no printer go to the first one. The simulator is listed only when configured, e.g. `QL-700=simulation`.
 
 To build the image locally:
 

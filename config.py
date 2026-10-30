@@ -23,7 +23,8 @@ class Config(object):
     # [('QL-700', 'usb://0x04f9:0x2042'), ('QL-1100', 'file:///dev/usb/lp1')]
     # or the environment variable PRINTERS="QL-700=usb://0x04f9:0x2042,...".
     # When set, PRINTER_PRINTER, PRINTER_MODEL and the automatic detection are
-    # not used, requests that name no printer go to the first one.
+    # not used, requests that name no printer go to the first one. The simulator
+    # is listed only when configured, e.g. 'QL-700=simulation'.
     PRINTERS = []
 
     SERVER_PORT = 8013
