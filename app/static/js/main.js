@@ -587,7 +587,6 @@ function loadedLabel() {
 }
 
 function updatePrinterStatus() {
-    selectLoadedLabelSize();
     filterLabelSizes(printer_status.model);
     if ($('#label_size option:selected').val().includes('red')) {
         $(".red-support").show();
@@ -617,14 +616,6 @@ function updatePrinterStatus() {
         // Clear printer errors
         setStatus({ type: 'status', status: 'success' });
     }
-}
-
-// Follow the label size loaded in the printer, unless the selected one fits
-// (e.g. a black/red variant). The select matters only for unknown media.
-function selectLoadedLabelSize() {
-    filterLabelSizes(printer_status.model);
-    const loaded = loadedLabel();
-    if (loaded && !loaded.selected && loaded.value) $('#label_size').val(loaded.value).trigger('change');
 }
 
 // The printer chosen by the user or restored from the settings. If it is not
@@ -699,8 +690,6 @@ function switchSettings(printer) {
     if (localStorage.getItem(LS_KEY)) {
         restoreAllSettingsFromLocalStorage();
     } else {
-        // The loaded label size before the first save, not as an undo step
-        selectLoadedLabelSize();
         saveAllSettingsToLocalStorage();
     }
     updateUndoButton();
