@@ -151,3 +151,18 @@ def test_label_designer_can_be_installed_as_an_app():
     with client.get(apple_icon) as response:
         image = Image.open(BytesIO(response.data))
     assert image.size == (180, 180) and image.mode == 'RGB'
+
+
+def test_label_designer_below_a_path_behind_a_proxy(monkeypatch):
+    headers = {'X-Forwarded-Prefix': '/labels', 'X-Forwarded-Host': 'example.com', 'X-Forwarded-Proto': 'https'}
+    # Without PROXY_COUNT the headers are not trusted
+    client = create_app().test_client()
+    assert client.get('/', headers=headers).headers['Location'] == '/labeldesigner/'
+    monkeypatch.setenv('PROXY_COUNT', '1')
+    client = create_app().test_client()
+    assert client.get('/', headers=headers).headers['Location'] == '/labels/labeldesigner/'
+    html = client.get('/labeldesigner/', headers=headers).get_data(as_text=True)
+    manifest_url = re.search(r'<link rel="manifest" href="([^"]+)"', html).group(1)
+    assert manifest_url.startswith('/labels/')
+    # The API is called below the path too
+    assert "url_for_print = '/labels/labeldesigner/api/print'" in html

@@ -96,6 +96,7 @@ The navbar shows the version and build time of the running image, please add the
 | `LABEL_TEMPLATE_ENV_VARS` | Environment variables labels may insert with `{{env:<var>}}`, comma-separated. All others stay empty, so that nobody can read secrets of the server through a label. | none |
 | `WEBHOOK_PASSWORD` | Turns on the webhook, see [API](#api) | off |
 | `TRUSTED_HOSTS` | Host names you open the label designer with, comma-separated, e.g. `labels.local,192.168.0.10`. Requests for other names are refused, which protects against DNS rebinding. | all |
+| `PROXY_COUNT` | Number of reverse proxies in front of the server, see below. Only then the `X-Forwarded-*` headers they set are used, others could fake them. | `0` |
 | `PRINT_MAX_COUNT` | Most labels per print request | `100` |
 | `MAX_CONTENT_LENGTH` | Largest request in bytes, e.g. for uploaded images | 32 MB |
 | `LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL` | `WARNING` |
@@ -106,6 +107,18 @@ Other settings, e.g. the default font and margins, go into `instance/application
 Fonts: the label designer offers all `.ttf` and `.otf` fonts it finds in the system font folders when it starts. The image comes with DejaVu, Droid, FreeFont, Liberation, Noto and Inconsolata. To add fonts, mount a folder with them, e.g. `./fonts:/usr/local/share/fonts/custom:ro`, and restart the container. A saved label whose font is not installed is shown and printed with the default font, and the preview says so.
 
 Network printers are found when they announce themselves like for Bonjour, which in Docker needs `network_mode: host`, or by a known MAC address prefix in the ARP table. Add others with `tcp://<IP address>` and please open an issue. Network printers that speak IPP (port 631), e.g. the QL-810W, report their model and errors: jobs are not sent while they report one, and an error after a job is shown like for USB printers. The QL-810W also names loaded die-cut labels, but not endless rolls, and reports an open cover as an error without saying which. Older printers only take print jobs on port 9100 and report nothing.
+
+Behind a reverse proxy, set `PROXY_COUNT=1`. The label designer can then also be served below a path, e.g. with nginx:
+
+```nginx
+location /labels/ {
+    proxy_pass http://127.0.0.1:8013/;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Prefix /labels;
+}
+```
 
 The printer `simulation` saves the labels as PNG files in `simulated_labels` (the newest 100) instead of printing them.
 
