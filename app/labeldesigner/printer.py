@@ -705,7 +705,12 @@ def get_ptr_status(config: Config):
             printers = []
             for model, device in config['PRINTERS']:
                 try:
-                    state = SIMULATOR_PRINTER.copy() if device == 'simulation' else query_status(device, model)
+                    if device == 'simulation':
+                        state = SIMULATOR_PRINTER.copy()
+                    elif device.startswith('tcp://'):
+                        state = query_network_status(device, model)
+                    else:
+                        state = query_status(device, model)
                 except Exception as e:
                     logger.info('Status query of %s failed: %s', device, e)
                     state = _failed_printer_state(device, e)

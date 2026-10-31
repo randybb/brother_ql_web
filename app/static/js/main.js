@@ -622,14 +622,9 @@ function updatePrinterStatus() {
 // Follow the label size loaded in the printer, unless the selected one fits
 // (e.g. a black/red variant). The select matters only for unknown media.
 function selectLoadedLabelSize() {
-    const fits = (option) => option &&
-        parseInt(option.dataset.x) === printer_status.media_width &&
-        parseInt(option.dataset.y) === printer_status.media_length &&
-        option.dataset.models.split(',').includes(printer_status.model);
-    const select = document.getElementById('label_size');
-    if (!select || fits(select.selectedOptions[0])) return;
-    const loaded = Array.from(select.options).find(fits);
-    if (loaded) $(select).val(loaded.value).trigger('change');
+    filterLabelSizes(printer_status.model);
+    const loaded = loadedLabel();
+    if (loaded && !loaded.selected && loaded.value) $('#label_size').val(loaded.value).trigger('change');
 }
 
 // The printer chosen by the user or restored from the settings. If it is not
