@@ -41,6 +41,7 @@ def _log_level(value: str) -> str:
 # config files, command-line arguments (see parse_args) take precedence over
 # them.
 ENV_OVERRIDES = {
+    'SERVER_PORT': _positive_int,
     'PRINTER_MODEL': str,
     'PRINTER_PRINTER': str,
     'LABEL_DEFAULT_SIZE': str,
