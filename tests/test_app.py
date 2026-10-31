@@ -166,3 +166,13 @@ def test_label_designer_below_a_path_behind_a_proxy(monkeypatch):
     assert manifest_url.startswith('/labels/')
     # The API is called below the path too
     assert "url_for_print = '/labels/labeldesigner/api/print'" in html
+def test_printers_from_environment(monkeypatch):
+    monkeypatch.setenv('PRINTERS', 'QL-700=usb://0x04f9:0x2042/L9Z378866, QL-1100=file:///dev/usb/lp1')
+    assert create_app().config['PRINTERS'] == [
+        ('QL-700', 'usb://0x04f9:0x2042/L9Z378866'),
+        ('QL-1100', 'file:///dev/usb/lp1'),
+    ]
+    for value in ('QL-9999=file:///dev/usb/lp0', 'QL-700', 'QL-700='):
+        monkeypatch.setenv('PRINTERS', value)
+        with pytest.raises(ValueError):
+            create_app()
