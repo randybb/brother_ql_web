@@ -2065,20 +2065,6 @@ def test_fast_printing(tmp_path, monkeypatch, route, fast):
     assert bool(flags & 0x40) == (fast != '1')
 
 
-def test_ptouch_tape_is_endless(tmp_path):
-    # P-touch tapes were taken for round die-cut labels: the label was 1 dot
-    # long and the printer stopped after a few millimeters
-    client = make_client(tmp_path, model='PT-E550W')
-    text = json.dumps([{'text': 'PT-E550W', 'font': 'DejaVu Sans,Book', 'size': 40}])
-    response = client.post('/labeldesigner/api/preview?return_format=png', data={
-        'printer': 'simulation', 'label_size': 'pt12', 'orientation': 'rotated', 'text': text})
-    assert response.status_code == 200
-    assert 'X-Label-Warning' not in response.headers
-    image = Image.open(io.BytesIO(response.data))
-    # Across the tape the printable 70 dots, along it as long as the text
-    assert image.height == 70 and image.width > 100
-
-
 @pytest.mark.parametrize('model, label_size, ptouch', [('PT-E550W', 'pt12', True), ('QL-700', '62', False)])
 def test_ptouch_printers_get_compressed_lines_and_no_media_type(tmp_path, monkeypatch, model, label_size, ptouch):
     # A PT-E550W hung after the half cut with uncompressed raster lines over
@@ -2117,8 +2103,22 @@ def test_copies_on_ptouch_printers_are_one_job_per_batch(tmp_path, monkeypatch, 
         assert data.endswith(b'\x1a')
     cut_every = [[data[i + 3] for i in range(len(data)) if data.startswith(b'\x1biA', i)] for data in sent]
     if cut_once == '1':
-        # Cut after the last label only, the first batch is not cut
-        assert cut_every == [[], [2, 2]]
+        # Half cuts between the labels, the tape is cut after each batch
+        assert cut_every == [[5] * 5, [2] * 2]
     else:
         # Cut after every label
         assert cut_every == [[1] * 5, [1] * 2]
+
+
+def test_ptouch_tape_is_endless(tmp_path):
+    # P-touch tapes were taken for round die-cut labels: the label was 1 dot
+    # long and the printer stopped after a few millimeters
+    client = make_client(tmp_path, model='PT-E550W')
+    text = json.dumps([{'text': 'PT-E550W', 'font': 'DejaVu Sans,Book', 'size': 40}])
+    response = client.post('/labeldesigner/api/preview?return_format=png', data={
+        'printer': 'simulation', 'label_size': 'pt12', 'orientation': 'rotated', 'text': text})
+    assert response.status_code == 200
+    assert 'X-Label-Warning' not in response.headers
+    image = Image.open(io.BytesIO(response.data))
+    # Across the tape the printable 70 dots, along it as long as the text
+    assert image.height == 70 and image.width > 100
