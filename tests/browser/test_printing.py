@@ -341,7 +341,10 @@ def test_cutting_per_printer_and_per_label(designer):
     designer.evaluate("() => openPrinterPanel()")
     # Only P-touch printers half cut and chain print, shown off
     assert designer.locator('[data-c="half_cut"][data-v="0"].on:disabled, [data-c="chain"][data-v="0"].on:disabled').count() == 2
-    designer.evaluate("() => { S.printer = Object.assign({}, S.printer, { model: 'PT-E550W' }); closeLayer(true); openPrinterPanel(); }")
+    # The 62 mm label is printed on it as set by hand: a PT-E550W does not
+    # report its tape over the network, and tape it takes would be assumed
+    designer.evaluate("""() => { S.printer = Object.assign({}, S.printer, { model: 'PT-E550W' });
+        S.settings.tapes = Object.assign({}, S.settings.tapes, { [printerKey()]: '62' }); closeLayer(true); openPrinterPanel(); }""")
     # Not cut is chain printing on P-touch printers
     designer.click('[data-c="cut"][data-v="none"]')
     assert designer.locator('[data-c="chain"][data-v="1"].on:disabled').count() == 1
@@ -404,6 +407,11 @@ def test_cutting_is_disabled_on_a_printer_without_a_cutter(designer):
     # Not cut is what is sent, also for a label saved with its own cutting
     assert designer.evaluate("() => [printerCut().cut, cutOf({ cut: 'each', label_size: 'puqu50x30' }).cut]") == ['none', 'none']
     assert 'disabled title="This printer has no cutter"' in designer.evaluate("() => cutField({ cut: '', label_size: 'puqu50x30' })")
+    # It prints in one quality, Fast did nothing
+    designer.evaluate("() => { S.settings.quality = 'fast'; closeLayer(true); openPrinterPanel(); }")
+    fast, quality = designer.locator('.pp [data-q="fast"]'), designer.locator('.pp [data-q="quality"]')
+    assert fast.is_disabled() and quality.is_disabled() and 'on' in quality.get_attribute('class').split()
+    assert quality.get_attribute('title') == 'This printer prints in one quality only'
 
 
 def test_assumed_tape_is_one_the_printer_takes(designer):
