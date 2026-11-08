@@ -386,6 +386,14 @@ def test_cutting_is_disabled_on_a_printer_without_a_cutter(designer):
     assert 'disabled title="This printer has no cutter"' in designer.evaluate("() => cutField({ cut: '', label_size: 'puqu50x30' })")
 
 
+def test_assumed_tape_is_one_the_printer_takes(designer):
+    # A PUQU Q00 does not report its labels, 62 mm endless tape was assumed
+    designer.evaluate("() => { S.settings.tapes = {}; S.printer = Object.assign({}, S.printer, { model: 'Q00', media_width: null, media_length: 0 }); detectTape(); }")
+    assert designer.evaluate('() => [S.tape, S.tapeAssumed]') == ['puqu50x30', True]
+    designer.evaluate("() => { S.printer = Object.assign({}, S.printer, { model: 'QL-700', media_width: null }); detectTape(); }")
+    assert designer.evaluate('() => S.tape') == '62'
+
+
 def test_printer_of_another_driver_gets_what_it_offers(designer):
     # The label designer knows printers only by what their driver tells
     designer.evaluate("""() => {

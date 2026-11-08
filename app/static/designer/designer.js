@@ -788,7 +788,10 @@ function detectTape() {
         S.tapeRedUnknown = !!found && !red && !p.text_color;
         if (!found) S.tapeUnknown = p.media_length ? `${p.media_width} x ${p.media_length} mm` : `${p.media_width} mm`;
     }
-    S.tape = found ? found.id : C.default_label_size;
+    // Assumed is the default size, or the first one the printer takes if it
+    // does not take that, e.g. a PUQU Q00 no 62 mm endless tape
+    const fallback = C.label_sizes.find(s => s.id === C.default_label_size && printerTakes(s)) || C.label_sizes.find(printerTakes);
+    S.tape = found ? found.id : fallback ? fallback.id : C.default_label_size;
     S.tapeAssumed = !found;
 }
 
