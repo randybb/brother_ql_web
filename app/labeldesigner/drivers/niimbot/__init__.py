@@ -71,8 +71,10 @@ class Niimbot(Driver):
         return f'The {model} cannot print at 600 dpi, turn off 600 dpi printing' if high_res else ''
 
     def capabilities(self, model):
-        # The labels are torn off
-        return dict(super().capabilities(model), qualities=['quality'], cutter=False)
+        # The labels are torn off, their top leaves it first
+        return dict(super().capabilities(model), qualities=['quality'], cutter=False, leaves_turned=True,
+                    # Turned clockwise to print, labels drawn lying leave it start first
+                    sideways_start_first=True)
 
     def status(self, device, model, unconfirmed=False):
         # One that did not answer is not looked for at every status query
