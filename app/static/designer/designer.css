@@ -192,19 +192,11 @@ input[type=range] { width: 100%; accent-color: var(--ink); }
    the slot (4 px from the edge, 7 px wide), so none of it is hidden */
 .stage .feed { position: relative; z-index: 3; margin-top: -8.5px; max-width: 100%; }
 .stage.side .feed { margin-top: 0; margin-left: -7.5px; align-self: center; }
-/* Printers that let sideways labels out start first stand right of them */
-.stage.side.mirrored { flex-direction: row-reverse; }
-.stage.mirrored .printer.side { border-radius: 6px 14px 14px 6px; background: linear-gradient(270deg, var(--printer-top), var(--printer-bottom)); }
-.stage.mirrored .printer.side .mouth { right: auto; left: 4px; }
-.stage.side.mirrored .feed { margin-left: 0; margin-right: -7.5px; }
-.stage.side.mirrored .dim-y { right: auto; left: -2.7rem; }
 .stage .flow { position: absolute; color: var(--muted); font-size: .9rem; opacity: .8; }
 .stage:not(.side) .flow { left: -1.6rem; top: 14px; }
 .stage.side .flow { top: -1.6rem; left: 14px; }
-.stage.side.mirrored .flow { left: auto; right: 14px; }
 .stage.short:not(.side) .flow { top: 0; }
 .stage.short.side .flow { left: 0; }
-.stage.short.side.mirrored .flow { left: auto; right: 0; }
 .stage.tiny .flow { display: none; }
 .stage .paper { background: #fff; line-height: 0; box-shadow: 0 1px 2px rgba(0, 0, 0, .18), 0 10px 24px rgba(0, 0, 0, .1); }
 .stage .paper img { display: block; width: 100%; height: auto; }

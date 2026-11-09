@@ -92,9 +92,14 @@ def test_rows_are_as_wide_as_the_label_across_the_printhead():
         label_content = None
 
         def generate(self):
-            return Image.new('RGB', (320, 96), 'white')
+            # Its start black
+            img = Image.new('RGB', (320, 96), 'white')
+            img.paste((0, 0, 0), (0, 0, 10, 96))
+            return img
     _, rows = niimbot.label_rows(_Label(), 'niimbot12x40')
     assert (len(rows), len(rows[0])) == (320, 96)
+    # Its end leaves the printer first, as on the other printers
+    assert not any(rows[0]) and all(rows[-1])
 
 
 def test_status_through_the_label_designer(client, fake):
