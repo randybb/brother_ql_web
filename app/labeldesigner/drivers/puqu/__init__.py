@@ -1,6 +1,6 @@
 """The PUQU Q00, a thermal printer for die-cut labels on Bluetooth
-(protocol.py), also sold as the Reekon P1 Tagger (P1L), configured as a
-Q00 as well. It has no cutter, the labels are torn off."""
+(protocol.py), also sold as the Reekon P1 Tagger (P1L). It has no cutter,
+the labels are torn off."""
 
 import logging
 import re
@@ -15,7 +15,9 @@ from . import protocol
 
 logger = logging.getLogger(__name__)
 
-MODELS = ('Q00',)
+MODELS = ('Q00', 'P1L')
+# The same printer under the name of another maker
+VENDORS = {'P1L': 'Reekon'}
 
 # Width x length in mm, and how far from the left of the printhead the
 # label lies, in mm. Labels narrower than the printhead are held by a slider
@@ -75,7 +77,8 @@ class Puqu(Driver):
     def capabilities(self, model):
         # The labels are torn off. They leave it readable, the other way round
         # than a QL printer.
-        return dict(super().capabilities(model), qualities=['quality'], cutter=False, leaves_turned=True)
+        return dict(super().capabilities(model), qualities=['quality'], cutter=False, leaves_turned=True,
+                    vendor=VENDORS.get(model, self.vendor))
 
     def status(self, device, model, unconfirmed=False):
         # One that did not answer is not looked for at every status query
