@@ -1,4 +1,4 @@
-"""The protocol of the Niimbot D110 over classic Bluetooth (RFCOMM), the
+"""The protocol of the Niimbot D110_M (firmware 4.x) over classic Bluetooth (RFCOMM), the
 print sequence of https://github.com/eigger/hass-niimbot
 (custom_components/niimbot/niimprint/printer.py). Packets are
 55 55 <command> <length> <data> <checksum> aa aa, the checksum the XOR of

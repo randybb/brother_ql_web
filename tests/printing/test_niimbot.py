@@ -1,4 +1,4 @@
-"""The Niimbot D110: its protocol against a fake printer in place of the
+"""The Niimbot D110_M: its protocol against a fake printer in place of the
 RFCOMM socket, and printing and status through the label designer."""
 import json
 import struct
@@ -11,7 +11,7 @@ from tests.helpers import make_client
 
 DEVICE = 'bt://00:F4:BA:17:12:06'
 TEXT = json.dumps([{'font': 'DejaVu Sans,Book', 'text': 'OK', 'size': '30'}])
-# The replies of a D110 as the script this driver came from got them
+# The replies of a D110_M as the script this driver came from got them
 REPLIES = {0x21: (0x31, b'\x01'), 0x23: (0x33, b'\x01'), 0x01: (0x02, b'\x01'), 0x13: (0x14, b'\x01'),
            0xe3: (0xe4, b'\x01'), 0xa3: (0xb3, struct.pack('>H', 1)), 0xf3: (0xf4, b'\x01'),
            0x1a: (0x1b, b'\x00'), 0xdc: (0xdd, bytes(9) + bytes([0, 3, 0, 1]))}
@@ -64,7 +64,7 @@ def fake(monkeypatch):
 def client(tmp_path):
     client = make_client(tmp_path)
     client.application.config['PRINTER_PRINTER'] = DEVICE
-    client.application.config['PRINTER_MODEL'] = 'D110'
+    client.application.config['PRINTER_MODEL'] = 'D110_M'
     return client
 
 
@@ -104,7 +104,7 @@ def test_rows_are_as_wide_as_the_label_across_the_printhead():
 
 def test_status_through_the_label_designer(client, fake):
     printer_ = client.get('/labeldesigner/api/printer_status').get_json()['printers'][0]
-    assert (printer_['model'], printer_['path'], printer_['errors']) == ('D110', DEVICE, [])
+    assert (printer_['model'], printer_['path'], printer_['errors']) == ('D110_M', DEVICE, [])
     assert fake.commands == [0xdc, 0x1a]
     # A roll without RFID tag has no size
     assert printer_['media_width'] is None
