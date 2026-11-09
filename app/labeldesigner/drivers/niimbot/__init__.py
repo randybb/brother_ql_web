@@ -18,10 +18,12 @@ logger = logging.getLogger(__name__)
 MODELS = ('D110',)
 DOTS_PER_MM = 8
 
-# Width x length in mm of the rolls, e.g. T12*40 for 12 x 40 mm
-SIZES = ((12, 40),)
-# Width x length of the rolls by the barcode in their RFID tag. Niimbot
-# tells it only online, at print.niimbot.com.
+# Width x length in mm of the rolls sold for the D11 and D110, e.g. T12*40
+# for 12 x 40 mm. Only 12 x 40 mm was printed on.
+SIZES = ((12, 22), (12, 40), (14, 22), (14, 40), (14, 60), (15, 30), (15, 50))
+# Width x length of the rolls by the barcode in their RFID tag, the label
+# designer then picks them. Niimbot tells it only online, at
+# print.niimbot.com, the label designer stays offline.
 ROLLS = {'01222281': (12, 40)}  # T12*40-155WHITE
 # It beeps at each connection: its status is asked at most this often, in s
 STATUS_EVERY = 300
