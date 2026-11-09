@@ -83,7 +83,7 @@ const isPtouch = id => !!SIZES[id] && SIZES[id].models.length > 0 && SIZES[id].m
 // ZINK tape of the VC-500W, which prints in any color
 const isColorTape = id => !!SIZES[id] && SIZES[id].palette === 'color';
 // What the server's driver of a printer model offers, see Driver.capabilities()
-const ANY_PRINTER = { qualities: ['fast', 'quality', 'high'], high_res: true, cutter: true, half_cut: false, chain: false, feed_waste: false, job_stages: false, colors: 'black', never_cut: '', leaves_turned: false, lead_mm: 0, vendor: '', manual_cutter: false };
+const ANY_PRINTER = { qualities: ['fast', 'quality', 'high'], high_res: true, cutter: true, half_cut: false, chain: false, feed_waste: false, job_stages: false, colors: 'black', never_cut: '', leaves_turned: false, sideways_start_first: false, lead_mm: 0, vendor: '', manual_cutter: false };
 const capsOf = model => (C.models || {})[model] || ANY_PRINTER;
 const printerCaps = () => capsOf(S.printer && S.printer.model);
 // The maker and the model of a printer, as the label designer names it
@@ -1326,11 +1326,14 @@ async function showOnStage(el, design, values, onWarning, blank = false) {
     // Labels that leave the printer top first are shown leaving it upwards,
     // the printer below them. Those that leave sideways have it to their left.
     const turned = !side && sizeCaps(design.label_size).leaves_turned;
+    // Some let labels that leave them sideways out with their start first,
+    // the printer stands right of them
+    const mirrored = side && sizeCaps(design.label_size).sideways_start_first;
     // The cut after the label, and how copies are cut
     const caps = sizeCaps(design.label_size), cutNow = cutOf(design);
     // Kept to fit the label again when the stage changes its size
     el._view = {
-        url: p.url, w, h, side, turned, dpi, blank, color: isColorTape(design.label_size),
+        url: p.url, w, h, side, turned, mirrored, dpi, blank, color: isColorTape(design.label_size),
         lead, leadDots: !side && lead ? lead / 25.4 * dpi : 0,
         form: (isEndless(size) ? '' : ' diecut') + (size.form === 'round_die_cut' ? ' round' : ''),
         dims: [side ? lengthMm : size.tape[0], side ? size.tape[0] : lengthMm],
@@ -1366,7 +1369,7 @@ window.addEventListener('resize', () => $$('.stage').forEach(el => placeOnStage(
 function placeOnStage(el, redraw = false) {
     const v = el._view;
     if (!v || !el.isConnected) return;
-    const { w, h, side, turned } = v, large = largePreview(el);
+    const { w, h, side, turned, mirrored } = v, large = largePreview(el);
     const box = el.getBoundingClientRect();
     // The printer takes room on top, or on the left for labels that leave it sideways
     const maxW = Math.max(140, box.width - 110 - (side ? 70 : 0)), maxH = Math.max(110, Math.min(440, window.innerHeight * .5) - (side ? 0 : 60));
@@ -1390,7 +1393,7 @@ function placeOnStage(el, redraw = false) {
     // Short labels keep the arrow clear of the scissors at the cut
     const short = side ? dw : dh;
     const busy = el.classList.contains('busy');
-    el.className = 'stage' + (side ? ' side' : '') + v.form + (turned ? ' turned' : '') + (large ? ' large' : '')
+    el.className = 'stage' + (side ? ' side' : '') + v.form + (turned ? ' turned' : '') + (mirrored ? ' mirrored' : '') + (large ? ' large' : '')
         + (short < 30 ? ' tiny' : short < 50 ? ' short' : '') + (busy ? ' busy' : '');
     // The front of the printer with its exit slot, its name and status light
     const st = printerState(S.printer);
@@ -1399,7 +1402,7 @@ function placeOnStage(el, redraw = false) {
     const printer = side
         ? `<div class="printer side" style="height:${dh + 64}px" aria-hidden="true">${led}${model}<span class="mouth" style="height:${dh + 16}px"></span></div>`
         : `<div class="printer top" style="width:${dw + 72}px" aria-hidden="true">${led}${model}<span class="mouth" style="width:${dw + 16}px"></span></div>`;
-    const flow = `<div class="flow" title="Printing direction"><i class="fa-solid fa-${side ? 'arrow-right-long' : turned ? 'arrow-up-long' : 'arrow-down-long'}"></i></div>`;
+    const flow = `<div class="flow" title="Printing direction"><i class="fa-solid fa-${side ? (mirrored ? 'arrow-left-long' : 'arrow-right-long') : turned ? 'arrow-up-long' : 'arrow-down-long'}"></i></div>`;
     const leadPx = Math.round(v.leadDots * k);
     const paper = (leadPx ? `<div class="lead" style="height:${leadPx}px" title="Blank paper, ${v.lead} mm"></div>` : '')
         + (v.blank ? `<div class="blank-paper" style="aspect-ratio:${w} / ${h}"></div>` : `<img alt="Label preview" src="${v.url}"${sharp ? ' class="dots"' : ''}>`);

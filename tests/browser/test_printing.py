@@ -441,6 +441,18 @@ def test_receipt_shows_the_blank_paper_before_it(designer):
     assert shown == round(img / 203 * 25.4) + 12
 
 
+def test_labels_lying_on_a_d110_leave_it_start_first(designer):
+    # Turned clockwise to print, "A" of "AB" came out first
+    designer.evaluate("""() => { S.printer = Object.assign({}, S.printer, { model: 'D110' }); S.tape = 'niimbot12x40';
+        openEditor({ title: 'D', design: Object.assign(baseDesign('niimbot12x40'), { text: [L('AB', 40)] }) }); }""")
+    wait_for_preview(designer)
+    classes = designer.get_attribute('#edStage', 'class').split()
+    assert 'side' in classes and 'mirrored' in classes
+    # The printer stands right of the label
+    assert designer.evaluate("() => getComputedStyle(document.querySelector('#edStage')).flexDirection") == 'row-reverse'
+    assert designer.locator('#edStage .flow .fa-arrow-left-long').count() == 1
+
+
 def test_cutting_is_disabled_on_a_printer_without_a_cutter(designer):
     # The labels of a PUQU Q00 are torn off, cutting after each or the last
     # label was offered all the same
