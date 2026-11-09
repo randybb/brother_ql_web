@@ -19,6 +19,9 @@ DOTS_PER_MM = 8
 
 # Width x length in mm of the rolls, e.g. T12*40 for 12 x 40 mm
 SIZES = ((12, 40),)
+# Width x length of the rolls by the barcode in their RFID tag. Niimbot
+# tells it only online, at print.niimbot.com.
+ROLLS = {'01222281': (12, 40)}  # T12*40-155WHITE
 
 
 def _label(width: int, length: int) -> Label:
@@ -91,6 +94,10 @@ class Niimbot(Driver):
                 return state
             with protocol.connect(device) as c:
                 state['battery'] = protocol.heartbeat(c).get('battery')
+                roll = protocol.roll(c)
+        # The label designer then picks the labels of the roll
+        if roll and roll['barcode'] in ROLLS:
+            state['media_width'], state['media_length'] = ROLLS[roll['barcode']]
         devices.status_cache[devices.lock_key(device)] = state
         return state
 

@@ -98,7 +98,16 @@ def test_rows_are_as_wide_as_the_label_across_the_printhead():
 def test_status_through_the_label_designer(client, fake):
     printer_ = client.get('/labeldesigner/api/printer_status').get_json()['printers'][0]
     assert (printer_['model'], printer_['path'], printer_['errors']) == ('D110', DEVICE, [])
-    assert fake.commands == [0xdc]
+    assert fake.commands == [0xdc, 0x1a]
+    # A roll without RFID tag has no size
+    assert printer_['media_width'] is None
+
+
+def test_status_tells_the_size_of_a_known_roll(client, fake, monkeypatch):
+    tag = bytes(8) + b'\x0801222281' + b'\x10PZ1G910304007921' + struct.pack('>HHB', 192, 87, 1)
+    monkeypatch.setitem(REPLIES, 0x1a, (0x1b, tag))
+    printer_ = client.get('/labeldesigner/api/printer_status').get_json()['printers'][0]
+    assert (printer_['media_width'], printer_['media_length']) == (12, 40)
 
 
 def test_printer_that_is_off_is_not_looked_for_at_every_status_query(client, monkeypatch):
