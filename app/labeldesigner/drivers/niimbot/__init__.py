@@ -42,10 +42,11 @@ def label_rows(label, label_size: str) -> tuple[Image.Image, list[list[int]]]:
     as the label, black is printed."""
     img = label.generate()
     # The label designer draws labels longer than wide lying, e.g. 12 x 40
-    # mm as 320 x 96 dots; turned clockwise they print as drawn
+    # mm as 320 x 96 dots; turned as by the other drivers, their end leaves
+    # the printer first
     across = next(size.dots_printable[0] for size in LABELS if size.identifier == label_size)
     if img.width != across:
-        img = img.rotate(-90, expand=True)
+        img = img.rotate(90, expand=True)
     dither = label.label_content != LabelContent.IMAGE_BW
     img = img.convert('L').convert('1', dither=Image.Dither.FLOYDSTEINBERG if dither else Image.Dither.NONE)
     rows = [[int(img.getpixel((x, y)) == 0) for x in range(min(img.width, protocol.HEAD))] for y in range(img.height)]
@@ -72,9 +73,7 @@ class Niimbot(Driver):
 
     def capabilities(self, model):
         # The labels are torn off, their top leaves it first
-        return dict(super().capabilities(model), qualities=['quality'], cutter=False, leaves_turned=True,
-                    # Turned clockwise to print, labels drawn lying leave it start first
-                    sideways_start_first=True)
+        return dict(super().capabilities(model), qualities=['quality'], cutter=False, leaves_turned=True)
 
     def status(self, device, model, unconfirmed=False):
         # One that did not answer is not looked for at every status query
