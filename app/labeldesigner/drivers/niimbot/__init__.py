@@ -1,5 +1,6 @@
-"""The Niimbot D110, a thermal printer for small die-cut labels on Bluetooth
-(protocol.py). It has no cutter, the labels are torn off."""
+"""The Niimbot D110_M, a thermal printer for small die-cut labels on Bluetooth
+(protocol.py). It has no cutter, the labels are torn off. Not the D110, which
+niimbluelib prints with other commands."""
 
 import logging
 import re
@@ -15,11 +16,11 @@ from . import protocol
 
 logger = logging.getLogger(__name__)
 
-MODELS = ('D110',)
+MODELS = ('D110_M',)
 DOTS_PER_MM = 8
 
-# Width x length in mm of the rolls sold for the D11 and D110, e.g. T12*40
-# for 12 x 40 mm. Only 12 x 40 mm was printed on.
+# Width x length in mm of the rolls sold for the D11 and D110 printers,
+# e.g. T12*40 for 12 x 40 mm. Only 12 x 40 mm was printed on.
 SIZES = ((12, 22), (12, 40), (14, 22), (14, 40), (14, 60), (15, 30), (15, 50))
 # Width x length of the rolls by the barcode in their RFID tag, the label
 # designer then picks them. Niimbot tells it only online, at
