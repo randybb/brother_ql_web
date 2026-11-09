@@ -3,6 +3,7 @@
 
 import logging
 import re
+import time
 
 from PIL import Image
 
@@ -22,6 +23,9 @@ SIZES = ((12, 40),)
 # Width x length of the rolls by the barcode in their RFID tag. Niimbot
 # tells it only online, at print.niimbot.com.
 ROLLS = {'01222281': (12, 40)}  # T12*40-155WHITE
+# It beeps at each connection: its status is asked at most this often, in s
+STATUS_EVERY = 300
+_asked: dict[str, float] = {}
 
 
 def _label(width: int, length: int) -> Label:
@@ -75,12 +79,16 @@ class Niimbot(Driver):
         error = devices.unanswered_before(device)
         if error:
             raise error.with_traceback(None)
+        cached = devices.status_cache.get(devices.lock_key(device))
+        if cached and time.monotonic() - _asked.get(device, 0) < STATUS_EVERY:
+            return dict(cached)
         try:
             state = self._status(device, model)
         except self.errors as e:
             devices.note_answer(device, e)
             raise
         devices.note_answer(device)
+        _asked[device] = time.monotonic()
         return state
 
     def _status(self, device, model):

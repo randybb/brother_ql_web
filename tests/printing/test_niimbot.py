@@ -42,6 +42,8 @@ class FakePrinter:
 @pytest.fixture(autouse=True)
 def answered(monkeypatch):
     monkeypatch.setattr(devices, '_unanswered', {})
+    monkeypatch.setattr(devices, 'status_cache', {})
+    monkeypatch.setattr(niimbot, '_asked', {})
 
 
 @pytest.fixture
@@ -108,6 +110,16 @@ def test_status_tells_the_size_of_a_known_roll(client, fake, monkeypatch):
     monkeypatch.setitem(REPLIES, 0x1a, (0x1b, tag))
     printer_ = client.get('/labeldesigner/api/printer_status').get_json()['printers'][0]
     assert (printer_['media_width'], printer_['media_length']) == (12, 40)
+
+
+def test_status_is_asked_only_every_few_minutes(client, fake, monkeypatch):
+    # The printer beeps at each connection
+    client.get('/labeldesigner/api/printer_status')
+    client.get('/labeldesigner/api/printer_status')
+    assert fake.commands == [0xdc, 0x1a]
+    monkeypatch.setattr(niimbot, 'STATUS_EVERY', 0)
+    assert client.get('/labeldesigner/api/printer_status').get_json()['printers'][0]['errors'] == []
+    assert fake.commands == [0xdc, 0x1a] * 2
 
 
 def test_printer_that_is_off_is_not_looked_for_at_every_status_query(client, monkeypatch):
