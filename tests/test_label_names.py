@@ -95,12 +95,12 @@ def test_label_designer_gets_what_each_printer_offers(tmp_path):
                                  'never_cut': NEVER_WHY, 'leaves_turned': False, 'lead_mm': 0, 'vendor': 'Brother'}
     # The labels of the PUQU Q00 are torn off, those of the QL-500 cut with
     # its lever
-    assert models['Q00']['cutter'] is False and models['Q00']['leaves_turned'] is True
-    assert (models['Q00']['manual_cutter'], models['QL-500']['cutter'], models['QL-500']['manual_cutter']) == (False, False, True)
-    assert {model for model, caps in models.items() if not caps['cutter']} == {'QL-500', 'Q00', 'P1L', 'D110_M'}
-    assert models['Q00']['vendor'] == 'PUQU'
+    assert models['PUQU/Q00']['cutter'] is False and models['PUQU/Q00']['leaves_turned'] is True
+    assert (models['PUQU/Q00']['manual_cutter'], models['QL-500']['cutter'], models['QL-500']['manual_cutter']) == (False, False, True)
+    assert {model for model, caps in models.items() if not caps['cutter']} == {'QL-500', 'PUQU/Q00', 'Reekon/P1L', 'Niimbot/D110_M'}
+    assert models['PUQU/Q00']['vendor'] == 'PUQU'
     # The same printer sold by Reekon
-    assert models['P1L']['vendor'] == 'Reekon' and models['P1L']['leaves_turned'] is True
+    assert models['Reekon/P1L']['vendor'] == 'Reekon' and models['Reekon/P1L']['leaves_turned'] is True
 
 
 def test_check_label_size():
