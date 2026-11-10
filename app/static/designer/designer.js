@@ -906,7 +906,9 @@ async function printJob(job) {
     // A copy: printing a job again passes its design, which the history may
     // strip of its image before the request is sent
     job = Object.assign({}, job, { design: clone(job.design) });
-    if (!fitsTape(job.design.label_size)) {
+    // A tape only assumed says nothing about the one in the printer, e.g. a
+    // ZPL printer, which does not report it
+    if ((!S.tapeAssumed || S.tapeUnknown) && !fitsTape(job.design.label_size)) {
         const choice = await tapeGuard(job);
         if (choice === 'cancel') return false;
         if (choice === 'adapt') {
@@ -2356,9 +2358,8 @@ function tapeNote(d) {
     if (S.tapeUnknown) return `<span class="tape-note warn">${who} reports ${esc(S.tapeUnknown)} tape, which is not offered here.</span>`;
     // An assumed tape matches nothing in the printer
     if (d.label_size === S.tape) return S.tapeAssumed ? '' : `<span class="tape-note ok"><i class="fa-solid fa-check"></i> Matches the tape in the printer${tapeLeft(S.printer) ? ', ' + esc(tapeLeft(S.printer)) : ''}</span>`;
-    if (fitsTape(d.label_size)) return '';
-    const have = S.tapeAssumed ? `does not report its tape, ${esc(sizeName(S.tape))} is assumed` : `has ${esc(sizeName(S.tape))} loaded`;
-    return `<span class="tape-note warn">${who} ${have}. <button type="button" class="link" id="edUseTape">Switch to it</button></span>`;
+    if (S.tapeAssumed || fitsTape(d.label_size)) return '';
+    return `<span class="tape-note warn">${who} has ${esc(sizeName(S.tape))} loaded. <button type="button" class="link" id="edUseTape">Switch to it</button></span>`;
 }
 
 // The length of an endless label as cut, next to the tape, where the server

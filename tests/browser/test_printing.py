@@ -352,6 +352,7 @@ def test_tape_set_by_hand_is_known(designer):
 def test_tape_question_is_settled_when_something_else_opens(designer):
     # Print waited for an answer forever when the search took its place
     result = designer.evaluate("""async () => {
+        S.tapeAssumed = false;
         const job = printJob({ title: 'Box', design: Object.assign(baseDesign('29x90'), { text: [L('Box', 40)] }), values: {}, copies: 1 });
         await new Promise(done => setTimeout(done, 300));
         const asked = !!document.querySelector('#layer [data-r="anyway"]');
@@ -360,6 +361,17 @@ def test_tape_question_is_settled_when_something_else_opens(designer):
     }""")
     assert result == [True, False]
 
+
+
+def test_assumed_tape_is_not_asked_about(designer):
+    # A ZPL printer does not report its tape, every print asked about the one assumed
+    designer.evaluate("() => { S.tapeAssumed = true; S.tapeUnknown = ''; }")
+    result = designer.evaluate("""async () => {
+        const job = printJob({ title: 'Box', design: Object.assign(baseDesign('29x90'), { text: [L('Box', 40)] }), values: {}, copies: 1 });
+        await new Promise(done => setTimeout(done, 300));
+        return [!!document.querySelector('#layer [data-r="anyway"]'), tapeNote(baseDesign('29x90'))];
+    }""")
+    assert result == [False, '']
 
 def test_printer_panel_of_a_link_stays_closed(designer):
     designer.evaluate("() => { location.hash = '#printer'; }")
