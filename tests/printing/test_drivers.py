@@ -129,7 +129,10 @@ def test_model_names_are_unique():
 def test_models_of_other_makers_are_named_with_their_maker():
     for driver in drivers.DRIVERS:
         for model in driver.models:
-            if driver.vendor == 'Brother':
+            # A driver may print the printers of another maker, e.g. the
+            # Reekon P1L, a PUQU Q00
+            vendor = driver.capabilities(model)['vendor']
+            if vendor == 'Brother':
                 assert '/' not in model and drivers.canonical(f'Brother/{model}') == model
             else:
-                assert model.startswith(f'{driver.vendor}/') and drivers.canonical(model) == model
+                assert model.startswith(f'{vendor}/') and drivers.canonical(model) == model
