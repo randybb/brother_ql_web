@@ -8,9 +8,9 @@ import re
 
 from .. import devices
 from ..base import Driver
-from ..labels import Color
+from ..labels import Color, FormFactor
 from . import labels as tables, names, network, raster, usb
-from .models import HALF_CUTTERS, MODELS, length_problem, resolution_problem
+from .models import HALF_CUTTERS, MIN_PRINT_LENGTH, MIN_PTOUCH_PRINT_LENGTH, MODELS, length_problem, longest_label, resolution_problem
 
 logger = logging.getLogger(__name__)
 
@@ -49,13 +49,24 @@ class BrotherRaster(Driver):
         dpi = next((spec.dpi for model, spec in MODELS.items() if tables.label_fits(label, model)), 300)
         return dpi, dpi * 2
 
+    def length_rules(self, label):
+        if label.form_factor not in (FormFactor.ENDLESS, FormFactor.PTOUCH_ENDLESS):
+            return None
+        shortest = MIN_PTOUCH_PRINT_LENGTH if label.identifier in tables.PTOUCH_LABELS else MIN_PRINT_LENGTH
+        # The longest of the printers taking the tape, each refuses more than it prints
+        longest = max(longest_label(model) for model in MODELS if tables.label_fits(label, model))
+        # The printer feeds the margin before and after the print
+        return label.feed_margin / self.label_dpi(label)[0] * 25.4, shortest, longest
+
     def capabilities(self, model):
         ptouch = model.startswith('PT-')
         # The QL-500 takes no cut commands, its labels are cut with a lever
         cutting = MODELS[model].cutting
         return dict(super().capabilities(model), qualities=['fast', 'quality', 'high'],
                     high_res=not resolution_problem(model, True), cutter=cutting, manual_cutter=not cutting,
-                    half_cut=model in HALF_CUTTERS, chain=ptouch, feed_waste=ptouch)
+                    half_cut=model in HALF_CUTTERS, chain=ptouch, feed_waste=ptouch,
+                    # The top of a label leaves a QL or P-touch printer first
+                    leaves_turned=True)
 
     def resolution_problem(self, model, high_res):
         return resolution_problem(model, high_res)

@@ -6,6 +6,7 @@ This is a web service to print labels on Brother QL label printers.
 """
 
 import os
+import re
 import sys
 import logging
 import argparse
@@ -43,19 +44,50 @@ def _port(value: str) -> int:
     return number
 
 
-def _printer_list(value: str) -> list[tuple[str, str]]:
-    """Parse "MODEL=DEVICE,MODEL=DEVICE" into (model, device) pairs."""
+# The name of a printer in PRINTERS: letters and digits, also spaces, dots,
+# hyphens and underscores between them
+PRINTER_NAME = re.compile(r'[^\W_](?:[\w .-]{0,38}[^\W_])?')
+
+
+def _printer_list(value: str) -> list[tuple[str, ...]]:
+    """Parse "[NAME:]MODEL=DEVICE,..." into (model, device) pairs, or
+    (model, device, name) for a printer with a name."""
+    from .labeldesigner.drivers import canonical
     from .labeldesigner.label_names import MODELS
     models = list(MODELS)
-    printers = []
+    printers, names = [], set()
     for entry in value.split(','):
         if not entry.strip():
             continue
-        model, sep, device = (part.strip() for part in entry.partition('='))
+        left, sep, device = (part.strip() for part in entry.partition('='))
+        name, colon, model = (part.strip() for part in left.rpartition(':'))
+        model = canonical(model)
         if not sep or not device or model not in models:
             raise ValueError(entry)
-        printers.append((model, device))
+        if not colon:
+            printers.append((model, device))
+            continue
+        # Requests choose a printer by its name or its device, "simulation"
+        # is the simulator
+        key = name.casefold()
+        if not PRINTER_NAME.fullmatch(name) or key in names or key == 'simulation':
+            raise ValueError(entry)
+        names.add(key)
+        printers.append((model, device, name))
     return printers
+
+
+def _canonical(model: str) -> str:
+    from .labeldesigner.drivers import canonical
+    return canonical(model)
+
+
+def _model(value: str) -> str:
+    from .labeldesigner.drivers import MODELS
+    model = _canonical(value)
+    if model not in MODELS:
+        raise ValueError(value)
+    return model
 
 
 def _bool(value: str) -> bool:
@@ -80,7 +112,7 @@ def _log_level(value: str) -> str:
 # them.
 ENV_OVERRIDES = {
     'SERVER_PORT': _port,
-    'PRINTER_MODEL': str,
+    'PRINTER_MODEL': _model,
     'PRINTER_PRINTER': str,
     'PRINTERS': _printer_list,
     'LABEL_DEFAULT_SIZE': str,
@@ -168,7 +200,7 @@ def parse_args(app, argv=None):
                         help='Label size inserted in your printer. Defaults to 62.')
     parser.add_argument('--default-orientation', default=app.config['LABEL_DEFAULT_ORIENTATION'], choices=('standard', 'rotated'),
                         help='Label orientation, defaults to "standard". To turn your text by 90°, state "rotated".')
-    parser.add_argument('--model', default=app.config['PRINTER_MODEL'], choices=models,
+    parser.add_argument('--model', default=app.config['PRINTER_MODEL'], choices=models, type=_canonical,
                         help='The model of your printer (default: QL-500)')
     parser.add_argument('printer', nargs='?', default=app.config['PRINTER_PRINTER'],
                         help='String descriptor for the printer to use (like tcp://192.168.0.23:9100 or file:///dev/usb/lp0), may be left out to use auto-detection.')
