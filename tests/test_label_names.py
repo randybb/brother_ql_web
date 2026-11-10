@@ -97,7 +97,7 @@ def test_label_designer_gets_what_each_printer_offers(tmp_path):
     # its lever
     assert models['PUQU/Q00']['cutter'] is False and models['PUQU/Q00']['leaves_turned'] is True
     assert (models['PUQU/Q00']['manual_cutter'], models['QL-500']['cutter'], models['QL-500']['manual_cutter']) == (False, False, True)
-    assert {model for model, caps in models.items() if not caps['cutter']} == {'QL-500', 'PUQU/Q00', 'Reekon/P1L', 'Niimbot/D110_M'}
+    assert {model for model, caps in models.items() if not caps['cutter']} == {'QL-500', 'PUQU/Q00', 'Reekon/P1L', 'Niimbot/D110_M', 'Zebra/ZPL'}
     assert models['PUQU/Q00']['vendor'] == 'PUQU'
     # The same printer sold by Reekon
     assert models['Reekon/P1L']['vendor'] == 'Reekon' and models['Reekon/P1L']['leaves_turned'] is True

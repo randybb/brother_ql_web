@@ -635,3 +635,8 @@ def test_tape_note_follows_the_tape_the_printer_reports(designer):
     designer.evaluate("() => refreshPrinters()")
     assert 'Matches the tape in the printer' in designer.inner_text('.tape-note')
     assert designer.locator('#edUseTape').count() == 0
+def test_sheet_after_printing_on_a_phone_names_the_printer_with_its_maker(designer):
+    # It showed "on the PUQU/Q00"
+    designer.set_viewport_size({'width': 700, 'height': 900})
+    designer.evaluate("() => announce({ state: 'printed', copies: 1, title: 'Q', values: {}, design: baseDesign('puqu50x30'), printer: 'PUQU/Q00' })")
+    assert 'Q on the PUQU Q00' in designer.inner_text('body')
