@@ -783,6 +783,19 @@ async function refreshPrinters(look = false) {
     }
     detectTape();
     renderPrinterChip();
+    // An open printer panel lists the new status, its settings stay as they are
+    const list = $('.pp .plist');
+    if (list) { list.innerHTML = printerListHTML(); bindPrinterPanel(); }
+    // The note of the editor on the tape follows the tape the printer reports
+    const size = $('#edSize');
+    if (size && S.edit) {
+        const note = document.createElement('div');
+        note.innerHTML = tapeNote(S.edit.design);
+        const old = size.parentElement.querySelector('.tape-note');
+        if (old) old.replaceWith(...note.children);
+        else size.before(...note.children);
+        if ($('#edUseTape')) $('#edUseTape').onclick = () => { changeSize(S.edit.design, S.tape); renderEditor(); };
+    }
 }
 
 const printerKey = () => (S.printer && S.printer.path) || '';
@@ -2981,8 +2994,8 @@ function openPrinterPanel() {
     bindPrinterPanel();
 }
 
-function printerPanelHTML() {
-    const list = S.printers.map(p => {
+function printerListHTML() {
+    return S.printers.map(p => {
         const st = printerState(p);
         const on = S.printer && p.path === S.printer.path;
         return `<button class="prow${on ? ' on' : ''}" type="button" data-printer="${esc(p.path)}"><span class="dot ${st.cls}"></span>
@@ -2991,8 +3004,11 @@ function printerPanelHTML() {
                 ${p.battery_low ? '<span class="sm warn">The battery is low, charge the printer.</span>' : ''}</span>
             ${on ? '<i class="fa-solid fa-check"></i>' : ''}</button>`;
     }).join('') || '<p class="empty">No printer answered.</p>';
+}
+
+function printerPanelHTML() {
     return `<div class="row"><h2 class="grow">Printer</h2><button class="btn quiet icon" type="button" data-close title="Close"><i class="fa-solid fa-xmark"></i></button></div>
-        <div class="plist">${list}</div>
+        <div class="plist">${printerListHTML()}</div>
         <button class="btn sm" type="button" id="ppRefresh" style="align-self:flex-start"><i class="fa-solid fa-magnifying-glass"></i>Look for printers</button>
         ${settingsCard()}
         <a class="link" href="#wizard/printed"><i class="fa-solid fa-clock-rotate-left"></i> Printed labels</a>`;
