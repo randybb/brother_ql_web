@@ -282,3 +282,11 @@ def test_printer_that_took_too_long_once_is_asked_again(client, monkeypatch):
     for _ in range(2):
         assert client.get('/labeldesigner/api/printer_status').get_json()['printers'][0]['errors'] == ['The printer does not answer']
     assert len(calls) == 2
+
+
+def test_reekon_p1l_prints_as_a_q00(client, fake):
+    client.application.config['PRINTER_MODEL'] = 'Reekon/P1L'
+    printer = fake()
+    response = client.post('/labeldesigner/api/print', data={'label_size': 'puqu50x30', 'print_type': 'text', 'text': TEXT})
+    assert response.get_json() == {'success': True}
+    assert len(printer.headers()) == 1
