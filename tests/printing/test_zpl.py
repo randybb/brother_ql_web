@@ -206,3 +206,41 @@ def test_asked_at_most_every_10_s_then_silence_is_an_error(monkeypatch):
     thread.join(5)
     server.close()
     assert state['errors'] == [zpl.NO_ANSWER] and state['media_length'] == 30
+
+
+def test_printer_through_pyusb(monkeypatch):
+    printers = []
+
+    class Printer:
+        def __init__(self, device):
+            assert device == 'usb://0x0a5f:0x0080/12J123456'
+            self.reads, self.written, self.disposed = [b'old', b'', DATAMAX_HS], [], False
+            printers.append(self)
+
+        def read(self, length):
+            return self.reads.pop(0) if self.reads else b''
+
+        def write(self, data):
+            self.written.append(data)
+
+        def dispose(self):
+            self.disposed = True
+    monkeypatch.setattr(protocol.backends, 'UsbPrinter', Printer)
+    monkeypatch.setattr(protocol, 'WRITE_CHUNK', 4)
+    device = 'usb://0x0a5f:0x0080/12J123456'
+    # An answer from before is not taken for this one
+    assert protocol.host_status(device) == DATAMAX_HS
+    protocol.write(device, b'^XA^XZ\n')
+    assert printers[0].written == [b'~HS'] and printers[1].written == [b'^XA^', b'XZ\n']
+    assert all(printer.disposed for printer in printers)
+
+
+@pytest.mark.parametrize('device_id, model', [
+    ('MFG:Zebra Technologies;CMD:ZPL;MDL:GK420t;CLS:PRINTER;', 'Zebra/ZPL'),
+    ('MANUFACTURER:Zebra Technologies;COMMAND SET:EPL,ZPL;MODEL:ZD420;', 'Zebra/ZPL'),
+    ("MFG:DatamaxONeil ;CMD:DPL;MDL:E4204B Mark III;CLS:PRINTER;", None),
+    ('MFG:Brother;CMD:PT-CBP;MDL:QL-700;CLS:PRINTER;', None)])
+def test_known_by_its_device_id(monkeypatch, device_id, model):
+    from app.labeldesigner.drivers import devices
+    monkeypatch.setattr(devices, 'usb_device_id', lambda device: device_id)
+    assert zpl.DRIVER.model_of('file:///dev/usb/lp0') == model
