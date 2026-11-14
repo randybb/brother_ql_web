@@ -749,6 +749,11 @@ class SimpleLabel:
     turned = False
 
     def generate(self):
+        """The image of the label, also kept as generated: the one printed."""
+        self.generated = self._generate()
+        return self.generated
+
+    def _generate(self):
         img = self._generate_label()
         if self._flag_wrap:
             # Both halves from one render, so random texts and counters match
