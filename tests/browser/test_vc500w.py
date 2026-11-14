@@ -97,7 +97,7 @@ def test_images_print_in_color(designer):
 
 def test_fast_or_quality_without_600_dpi(designer):
     fake_vc500w(designer)
-    designer.evaluate("() => { S.settings.quality = 'high'; }")
+    designer.evaluate("() => { S.printer.settings = Object.assign({}, S.printer.settings, { quality: 'high' }); }")
     designer.click('#printerChip')
     designer.wait_for_selector('[data-q]')
     assert designer.eval_on_selector_all('[data-q]', 'buttons => buttons.map(b => b.textContent)') == ['Fast', 'Quality']
@@ -114,7 +114,7 @@ def test_half_cuts_but_no_chain_printing(designer):
     # Labels not cut get a half cut unless switched off, chain printing does
     # not exist on this printer
     fake_vc500w(designer)
-    designer.evaluate("() => { S.settings.cut = 'last'; }")
+    designer.evaluate("() => { S.printer.settings = Object.assign({}, S.printer.settings, { cut: 'last' }); }")
     designer.click('#printerChip')
     designer.wait_for_selector('.pp [data-c]')
     assert designer.locator('.pp [data-c="half_cut"][data-v="1"].on:enabled').count() == 1
@@ -130,7 +130,7 @@ def test_never_cut_is_not_offered(designer):
     # The printer would keep the labels until the next print, which follows
     # them without a cut. Set before for all printers, it cuts after the last.
     fake_vc500w(designer)
-    designer.evaluate("() => { S.settings.cut = 'none'; }")
+    designer.evaluate("() => { S.printer.settings = Object.assign({}, S.printer.settings, { cut: 'none' }); }")
     designer.click('#printerChip')
     designer.wait_for_selector('.pp [data-c]')
     never = designer.locator('.pp [data-c="cut"][data-v="none"]')

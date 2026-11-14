@@ -220,7 +220,7 @@ def test_saved_label_looks_the_same_through_the_api(designer):
     # The server fills in the blanks for both: a saved label previewed by
     # name looks as in the designer, its date in the format it was shown in
     result = designer.evaluate("""async () => {
-        S.settings.dateFmt = '%d.%m.%Y';
+        S.printer.settings = Object.assign({}, S.printer.settings, { date_format: '%d.%m.%Y' });
         const design = Object.assign(baseDesign('62'), { print_type: 'qrcode_text', code_text: 'box/{{blank:Box}}',
             text: [L('{{blank:What}} {{blank:Code}}', 60), L('Frozen on {{blank:Frozen on}}', 40)],
             fields: { Box: { type: 'number' }, Code: { type: 'text' } } });

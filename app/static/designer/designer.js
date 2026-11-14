@@ -234,7 +234,7 @@ function browserDateFormat() {
         return ['%d', '%m', '%Y'].every(x => f.includes(x)) ? f : '%Y-%m-%d';
     } catch (e) { return '%Y-%m-%d'; }
 }
-const dateFormat = () => (S.settings && S.settings.dateFmt) || browserDateFormat();
+const dateFormat = () => kept().date_format || browserDateFormat();
 // A date like 2026-11-01 written in that format
 function formatDate(iso, fmt = dateFormat()) {
     const [y, m, d] = iso.split('-');
@@ -352,7 +352,7 @@ function b64ToBlob(b64, mime) {
 }
 
 // 600 dpi, if chosen and the printer can print it
-const highRes = () => S.settings.quality === 'high' && (!S.printer || printerCaps().high_res);
+const highRes = () => kept().quality === 'high' && (!S.printer || printerCaps().high_res);
 // The dots of a label size per inch as the server tells, e.g. 180 on TZe
 // tape, 300 or 600 on DK rolls
 const dpiOf = (labelSize, high = highRes()) => SIZES[labelSize] ? SIZES[labelSize].dpi[high ? 1 : 0] : 300 * (high ? 2 : 1);
@@ -377,11 +377,10 @@ const noCutter = k => k.cutter === false;
 const noCutterWhy = k => k.manual_cutter ? 'This printer has no automatic cutter' : 'This printer has no cutter';
 const usableCut = (c, k) => noCutter(k) ? Object.assign(c, { cut: 'none' })
     : neverWhy(k) && c.cut === 'none' ? Object.assign(c, { cut: 'last' }) : c;
-// Printers without a setting of their own cut as set before for all
-const printerCut = () => usableCut(Object.assign({ cut: S.settings.cut || 'each', half_cut: '1', chain: '0' }, (S.settings.cuts || {})[printerKey()]), printerCaps());
+const printerCut = () => { const k = kept(); return usableCut({ cut: k.cut || 'each', half_cut: k.half_cut || '1', chain: k.chain || '0' }, printerCaps()); };
 // The end of the labels that leaves the printer first, set for each printer,
 // else as its driver prints them
-const leavesSet = () => (S.settings.leaves || {})[printerKey()] || '';
+const leavesSet = () => kept().leaves_first || '';
 const leavesFirst = (k = printerCaps()) => leavesSet() || (k.leaves_turned ? 'top' : 'bottom');
 // A label on the tape in the printer with its ends named, to see which one
 // comes out first, at its left and right end where it leaves sideways
@@ -439,7 +438,7 @@ function cutStrip(c, k, files = 1) {
 
 // The files of copies in the order they are printed: as sets, ABAB, or
 // grouped, AABB, two copies of several files, three of one
-const collated = () => S.settings.collate !== '0';
+const collated = () => kept().collate !== '0';
 const printOrder = files => {
     const ids = [...Array(files).keys()], copies = files > 1 ? 2 : 3;
     return collated() ? Array(copies).fill(ids).flat() : ids.flatMap(i => Array(copies).fill(i));
@@ -482,7 +481,7 @@ function formFor(design, copies = 1, forPrint = false, values = null, marks = fa
     // resolution as well
     fd.set('high_res', highRes() ? '1' : '0');
     if (forPrint) {
-        fd.set('fast_printing', S.settings.quality === 'fast' ? '1' : '0');
+        fd.set('fast_printing', kept().quality === 'fast' ? '1' : '0');
         fd.set('collate', collated() ? '1' : '0');
         const c = cutOf(design);
         fd.set('cut', c.cut);
@@ -747,8 +746,8 @@ const S = {
     lang: load('designer_lang', (navigator.language || 'en').toLowerCase().startsWith('de') ? 'de' : 'en'),
     fitsOnly: true,
     libCatChosen: false, typedGen: 0,
-    // tapes: the tape set by hand for each printer
-    settings: Object.assign({ quality: 'quality', cut: 'each', tapes: {}, dateFmt: '', largePreview: false }, load(own('designer_settings'), {})),
+    // Of this browser only, the settings of the printer are kept on the server
+    settings: { largePreview: !!load(own('designer_settings'), {}).largePreview },
     wizardText: '',
     libCat: 'saved', libSel: null,
     fillValues: {},
@@ -887,7 +886,10 @@ const printerKey = () => (S.printer && S.printer.path) || '';
 // Sentences put "the" before a model, not before a name.
 const printerLabel = p => (p && (p.name || printerName(p))) || 'Printer';
 const thePrinter = (p, start = false) => p && p.name ? p.name : `${start ? 'The' : 'the'} ${(p && printerName(p)) || 'printer'}`;
-const manualTape = () => (S.settings.tapes || {})[printerKey()] || '';
+// The settings of the printer kept on the server, the common ones with its own
+const kept = () => (S.printer && S.printer.settings) || {};
+const manualTape = () => kept().label_size || '';
+const COMMON_SETTINGS = ['quality', 'collate', 'date_format'];
 
 // Whether the printer takes a label size, any size if its model is unknown
 function printerTakes(s) {
@@ -3277,7 +3279,34 @@ function bindPrinterPanel() {
     const box = $('.pp');
     if (!box) return;
     const redraw = () => { box.innerHTML = printerPanelHTML(); bindPrinterPanel(); };
-    const saveSettings = () => { store(own('designer_settings'), S.settings); detectTape(); renderPrinterChip(); tapeChanged = true; redraw(); };
+    // Shown at once, then kept on the server. Only the setting changed goes
+    // there, another browser may change another one at the same time.
+    const saveSettings = changes => {
+        const printers = [...new Set([S.printer, ...S.printers])], before = printers.map(p => p.settings);
+        const shown = () => {
+            detectTape(); renderPrinterChip(); tapeChanged = true;
+            const open = $('.pp');
+            if (open) { open.innerHTML = printerPanelHTML(); bindPrinterPanel(); }
+        };
+        printers.forEach(p => {
+            p.settings = Object.assign({}, p.settings);
+            // The quality, collating and the date format are the same for all
+            Object.entries(changes).filter(([k]) => p === S.printer || COMMON_SETTINGS.includes(k))
+                .forEach(([k, v]) => { if (v) p.settings[k] = v; else delete p.settings[k]; });
+        });
+        shown();
+        const fd = new FormData();
+        fd.set('printer', printerKey());
+        if (C.models[S.printer.model]) fd.set('model', S.printer.model);
+        Object.entries(changes).forEach(([k, v]) => fd.set(k, v));
+        post('/settings', fd).then(async r => {
+            if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || 'The settings could not be saved');
+        }).catch(e => {
+            printers.forEach((p, i) => { p.settings = before[i]; });
+            toast(e.message);
+            shown();
+        });
+    };
     $$('[data-printer]', box).forEach(b => b.onclick = () => {
         S.printer = S.printers.find(p => p.path === b.dataset.printer) || S.printer;
         store(own('designer_printer'), S.printer.path);
@@ -3287,28 +3316,18 @@ function bindPrinterPanel() {
         redraw();
     });
     $('#ppRefresh', box).onclick = async () => { await refreshPrinters(true); redraw(); };
-    $('#setTape', box).onchange = e => {
-        S.settings.tapes = Object.assign({}, S.settings.tapes, { [printerKey()]: e.target.value });
-        if (!e.target.value) delete S.settings.tapes[printerKey()];
-        saveSettings();
-    };
-    $('#setDate', box).onchange = e => { S.settings.dateFmt = e.target.value; saveSettings(); };
+    $('#setTape', box).onchange = e => saveSettings({ label_size: e.target.value });
+    $('#setDate', box).onchange = e => saveSettings({ date_format: e.target.value });
     $('#qInfoBtn', box).onclick = () => {
         S.qualityInfo = !S.qualityInfo;
         $('#qInfo', box).hidden = !S.qualityInfo;
         $('#qInfoBtn', box).setAttribute('aria-expanded', String(S.qualityInfo));
     };
-    $$('[data-q]', box).forEach(b => b.onclick = () => { S.settings.quality = b.dataset.q; saveSettings(); });
-    $$('[data-col]', box).forEach(b => b.onclick = () => { S.settings.collate = b.dataset.col; saveSettings(); });
+    $$('[data-q]', box).forEach(b => b.onclick = () => saveSettings({ quality: b.dataset.q }));
+    $$('[data-col]', box).forEach(b => b.onclick = () => saveSettings({ collate: b.dataset.col }));
     $('#setLfTest', box).onclick = () => printJob({ title: 'Which end first', design: endsTest(), values: {}, copies: 1, source: { kind: 'test' } });
-    $$('[data-lf]', box).forEach(b => b.onclick = () => {
-        S.settings.leaves = Object.assign({}, S.settings.leaves, { [printerKey()]: b.dataset.lf });
-        saveSettings();
-    });
-    $$('[data-c]', box).forEach(b => b.onclick = () => {
-        S.settings.cuts = Object.assign({}, S.settings.cuts, { [printerKey()]: Object.assign(printerCut(), { [b.dataset.c]: b.dataset.v }) });
-        saveSettings();
-    });
+    $$('[data-lf]', box).forEach(b => b.onclick = () => saveSettings({ leaves_first: b.dataset.lf }));
+    $$('[data-c]', box).forEach(b => b.onclick = () => saveSettings({ [b.dataset.c]: b.dataset.v }));
     $('a.link', box).onclick = () => closeLayer(true);
 }
 
@@ -3320,7 +3339,8 @@ function settingsCard() {
     // Printers without 600 dpi, e.g. the VC-500W, print those labels in
     // quality, those with one quality, e.g. the PUQU Q00, all of them
     const oneQuality = !caps.qualities.includes('fast'), ONE = ' disabled title="This printer prints in one quality only"';
-    const q = oneQuality || (!offersHigh && S.settings.quality === 'high') ? 'quality' : S.settings.quality, c = printerCut();
+    const quality = kept().quality || 'quality';
+    const q = oneQuality || (!offersHigh && quality === 'high') ? 'quality' : quality, c = printerCut();
     const without600 = Object.keys(C.models).filter(m => C.models[m].qualities.includes('high') && !C.models[m].high_res).sort();
     // New labels start on the assumed tape, the default only if the printer takes it
     const assumed = `Labels keep their own size, new ones are ${esc(sizeName(S.tape))}.`;
@@ -3351,7 +3371,7 @@ function settingsCard() {
             <span class="muted small">For several images or PDF pages printed more than once.</span></div>
         <div><label class="label-s" for="setDate">Dates on labels</label>
             <select class="field" id="setDate">${[['', 'Like the browser: ' + formatDate('2026-11-01', browserDateFormat())], ['%Y-%m-%d', '2026-11-01'], ['%d.%m.%Y', '01.11.2026'], ['%d/%m/%Y', '01/11/2026'], ['%m/%d/%Y', '11/01/2026']]
-                .map(([v, n]) => `<option value="${esc(v)}"${(S.settings.dateFmt || '') === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
+                .map(([v, n]) => `<option value="${esc(v)}"${(kept().date_format || '') === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
             <span class="muted small">For "Today's date" and date blanks. Labels that already contain a date keep its format.</span></div>
         <div><span class="label-s">Leaves the printer first</span>
             <div class="row" style="gap:.5rem;align-items:center"><div class="seg">
@@ -3532,4 +3552,6 @@ addEventListener('pagehide', () => { if (S.edit) storeEdit(); });
     S.history.forEach(h => { if (h.state === 'printing') { h.state = 'failed'; h.message = 'The page was closed while printing'; } });
     route();
     setInterval(refreshPrinters, 20000);
+    // Settings changed in another browser show when coming back
+    addEventListener('visibilitychange', () => { if (!document.hidden) refreshPrinters(); });
 })();

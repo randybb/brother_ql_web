@@ -289,10 +289,10 @@ def test_preview_asks_for_the_blanks_its_key_is_made_of(designer):
     sent = designer.evaluate("""async () => {
         const fetched = window.fetch, bodies = [];
         window.fetch = (url, opts) => { if (String(url).includes('/preview')) bodies.push(new URLSearchParams(opts.body)); return fetched(url, opts); };
-        S.settings.dateFmt = '%Y-%m-%d';
+        S.printer.settings = Object.assign({}, S.printer.settings, { date_format: '%Y-%m-%d' });
         running = PARALLEL;
         const p = preview(Object.assign(baseDesign('62'), { text: [L('Due {{blank:Due}}', 40)], fields: { Due: { type: 'date' } } }), { Due: '2026-11-01' });
-        S.settings.dateFmt = '%d.%m.%Y';
+        S.printer.settings = Object.assign({}, S.printer.settings, { date_format: '%d.%m.%Y' });
         running = 0;
         nextJob();
         await p;

@@ -398,6 +398,113 @@
         }
       }
     },
+    "/labeldesigner/api/settings": {
+      "get": {
+        "summary": "Settings of a printer",
+        "description": "The settings made in the printer settings of the label designer, kept on the server for every browser: the label size set by hand and the cutting of the printer, the quality, collating and the date format of all printers. A setting not made is left out.",
+        "operationId": "getSettings",
+        "parameters": [
+          {
+            "name": "printer",
+            "in": "query",
+            "required": false,
+            "description": "The device or name of the printer, the configured one if left out.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "model",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrinterSettings"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown printer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Change settings of a printer",
+        "description": "Changes only the settings named, so that two browsers changing different settings keep both. An empty value removes a setting. Each is checked as for printing, e.g. a label size the printer cannot take is refused.",
+        "operationId": "setSettings",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsChange"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved, with all settings of the printer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "settings": {
+                      "$ref": "#/components/schemas/PrinterSettings"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A setting is refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Another label or setting is being saved, try again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/labeldesigner/api/barcodes": {
       "get": {
         "summary": "Supported code types",
@@ -1760,6 +1867,60 @@
           }
         }
       },
+      "PrinterSettings": {
+        "type": "object",
+        "properties": {
+          "label_size": {
+            "type": "string",
+            "description": "The label size set by hand, used where the printer does not report its media."
+          },
+          "cut": {
+            "type": "string",
+            "enum": ["each", "last", "none"]
+          },
+          "half_cut": {
+            "type": "string",
+            "enum": ["0", "1"]
+          },
+          "chain": {
+            "type": "string",
+            "enum": ["0", "1"]
+          },
+          "quality": {
+            "type": "string",
+            "enum": ["quality", "high", "fast"],
+            "description": "The same for all printers."
+          },
+          "collate": {
+            "type": "string",
+            "enum": ["0", "1"],
+            "description": "The same for all printers."
+          },
+          "date_format": {
+            "type": "string",
+            "description": "The same for all printers, e.g. `%d.%m.%Y`. Left out, the label designer writes dates as the browser does."
+          }
+        }
+      },
+      "SettingsChange": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "printer": {
+                "type": "string",
+                "description": "The device or name of the printer, the configured one if left out."
+              },
+              "model": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/PrinterSettings"
+          }
+        ]
+      },
       "Message": {
         "type": "object",
         "properties": {
@@ -2248,6 +2409,9 @@
           "color_support": {
             "type": "boolean",
             "description": "The printer prints in color (VC-500W), the label designer then offers any color."
+          },
+          "settings": {
+            "$ref": "#/components/schemas/PrinterSettings"
           },
           "tape_length_mm": {
             "type": ["integer", "null"],

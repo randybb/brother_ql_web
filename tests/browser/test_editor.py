@@ -419,7 +419,7 @@ def test_templates_stay_as_they_were_where_the_text_is_unchanged(designer):
     # Of two dates the one deleted is told by the cursor, the other keeps its
     # format. A blank named like a template stays a blank.
     two = '{{datetime:%d.%m.%Y}} {{datetime:%Y-%m-%d}}'
-    assert designer.evaluate("""two => (S.settings.dateFmt = '%Y-%m-%d') && [
+    assert designer.evaluate("""two => (S.printer.settings = Object.assign({}, S.printer.settings, { date_format: '%Y-%m-%d' })) && [
         fromDisplay('[today]', two, 0), fromDisplay('[today]', two, 7),
         fromDisplay('[today] xy', '{{blank:today}} x', 10),
         fromDisplay('[id] [counter:3]!', '{{blank:id}} {{blank:counter:3}}', 17),
@@ -427,7 +427,7 @@ def test_templates_stay_as_they_were_where_the_text_is_unchanged(designer):
         '{{datetime:%Y-%m-%d}}', '{{datetime:%d.%m.%Y}}', '{{blank:today}} xy', '{{blank:id}} {{blank:counter:3}}!',
         '{{datetime:%d.%m.%Y}} {{datetime:%Y-%m-%d}}']
     # In the field of a line, deleted from the start
-    designer.evaluate("""two => { S.settings.dateFmt = '%Y-%m-%d'; S.edit.design.text[0].text = two; renderEditor(); }""", two)
+    designer.evaluate("""two => { S.printer.settings = Object.assign({}, S.printer.settings, { date_format: '%Y-%m-%d' }); S.edit.design.text[0].text = two; renderEditor(); }""", two)
     wait_for_preview(designer)
     assert designer.input_value('[data-row="0"] .tx') == '[today] [today]'
     designer.evaluate("""() => {
@@ -818,7 +818,7 @@ def test_symbols_closed_while_loading_stay_closed(designer):
 def test_dates_keep_their_formats_when_one_is_added(designer):
     # A new [today] gets the format of the printer panel, the others keep theirs
     added, inserted = designer.evaluate("""() => {
-        S.settings.dateFmt = '%d.%m.%Y';
+        S.printer.settings = Object.assign({}, S.printer.settings, { date_format: '%d.%m.%Y' });
         const one = '{{datetime:%B %Y}}', two = '{{datetime:%d.%m.%Y}}, {{datetime:%H:%M}}';
         return [fromDisplay(toDisplay(one) + ' [today]', one), fromDisplay('[today] ' + toDisplay(two), two)];
     }""")

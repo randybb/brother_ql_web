@@ -20,6 +20,7 @@ from .cable_flag import CABLE_DIAMETER_REFUSED, CABLE_FLAG_REFUSED
 from .label import MAX_BARCODE_LENGTH, MAX_IMAGE_SCALING_FACTOR, MAX_RANDOM_LENGTH, TextTooLong, check_digit_problems
 from .label_names import cut_problems, label_length_problems, label_size_problems
 from .drivers import DRIVERS, MODELS, resolution_problem
+from .printer_settings import SETTINGS_MESSAGE, TOO_MANY_PRINTERS
 
 IMAGE_MODE_REFUSED = 'image_mode must be grayscale, black_and_white, red_and_black or colored'
 # A detected printer whose status names no model this server knows
@@ -52,6 +53,8 @@ MESSAGES = (
     TAGS_MESSAGE,
     TAGS_LIMIT,
     FIELDS_MESSAGE,
+    SETTINGS_MESSAGE,
+    TOO_MANY_PRINTERS,
     'image_position must be above, below, left or right',
     'label_length must be a length in millimeters or empty',
     *label_length_problems(),

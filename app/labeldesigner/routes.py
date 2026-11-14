@@ -14,7 +14,7 @@ from collections import OrderedDict
 from io import BytesIO
 from typing import BinaryIO
 from urllib.parse import urlparse
-from . import bp, demos, refusals
+from . import bp, demos, printer_settings, refusals
 from .refusals import IMAGE_MODE_REFUSED, UNKNOWN_MODEL
 from app import get_fonts
 from app.fonts import FontNotFound
@@ -478,7 +478,7 @@ def repo_list():
     repo = _get_repo_dir()
     files = []
     for name in sorted(os.listdir(repo)):
-        if not name.lower().endswith('.json'):
+        if name.startswith('.') or not name.lower().endswith('.json'):
             continue
         path = os.path.join(repo, name)
         # Read label metadata, a single broken file must not break the list
@@ -1261,11 +1261,48 @@ def get_printer_status():
     if request.args.get('look') == '1':
         look_again()
     status = get_ptr_status(current_app.config)
+    kept = _kept_settings()
     # The VC-500W prints in color, the label designer then offers colors
     for printer in [status] + status.get('printers', []):
         model = printer.get('model')
         printer['color_support'] = drivers.for_model(model).colors(model) == 'color'
+        printer['settings'] = printer_settings.of_printer(kept, printer.get('path', ''))
     return status
+
+
+def _kept_settings() -> dict:
+    """The settings of the printers kept on the server, see printer_settings."""
+    try:
+        with open(os.path.join(_get_repo_dir(), printer_settings.FILE), encoding='utf-8') as fh:
+            return printer_settings.parsed(fh.read())
+    except FileNotFoundError:
+        return {'printers': {}}
+    except OSError as e:
+        current_app.logger.warning('Cannot read the settings of the printers: %s', e)
+        return {'printers': {}}
+
+
+@bp.route('/api/settings', methods=['GET', 'POST'])
+def printer_settings_route():
+    """The settings of a printer, the common ones with its own. POST changes
+    only the ones named, an empty value removes one, and answers all."""
+    values = {**request.values.to_dict(), **_json_body()}
+    try:
+        device, model = _printer(values.pop('printer', None), values.pop('model', None))
+        if request.method == 'GET':
+            return jsonify(printer_settings.of_printer(_kept_settings(), device))
+        changes = printer_settings.checked(values, model)
+        repo = _get_repo_dir()
+        with _saving(repo):
+            data = printer_settings.changed(_kept_settings(), device, changes)
+            _write_atomically(os.path.join(repo, printer_settings.FILE),
+                              json.dumps(data, ensure_ascii=False, indent=2).encode('utf-8'))
+    except LabelsBusy:
+        return _busy()
+    except ValueError as e:
+        _log_refused_request('Saving the settings', e)
+        return make_response(jsonify({'success': False, 'message': refusals.message(e, refusals.INVALID_INPUT)}), 400)
+    return jsonify({'success': True, 'settings': printer_settings.of_printer(data, device)})
 
 
 @bp.route('/api/print', methods=['POST'])
