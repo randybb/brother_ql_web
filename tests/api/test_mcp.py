@@ -417,3 +417,11 @@ def test_unknown_barcode_types_are_told_the_types(client, tmp_path):
     assert result['isError'] and 'EAN13' in result['content'][0]['text'] and printed(tmp_path) == 0
     tools = {t['name']: t for t in call(client, 'tools/list')[1]['result']['tools']}
     assert all('EAN8' in tools[name]['description'] for name in ('print_text', 'preview_label'))
+
+
+def test_print_calls_are_logged_without_what_the_label_says(client, caplog):
+    with caplog.at_level('INFO', logger='app.labeldesigner.mcp_tools'):
+        tool(client, 'print_text', printer='Kitchen', label_size='62', count=1, lines=['secret'])
+        tool(client, 'print_label', name='QR-Example.json', printer='Kitchen', label_size='62', count=2, fillings=[{}])
+    logged = [r.getMessage() for r in caplog.records if r.name == 'app.labeldesigner.mcp_tools']
+    assert logged == ['MCP print_text on Kitchen, 1 labels', 'MCP print_label QR-Example.json on Kitchen, 2 of each of 1 fillings']

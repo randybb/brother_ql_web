@@ -19,6 +19,8 @@ from .label import BLANK_TEMPLATE, DATE_OFFSET, _iso_date
 from .label_names import LABELS, label_printers
 from .refusals import BARCODE_TYPES
 
+logger = logging.getLogger(__name__)
+
 API = '/labeldesigner/api'
 # The image of a preview, for clients that show images only by their address,
 # e.g. Home Assistant: the request of the preview is in its address
@@ -417,6 +419,8 @@ class Tools:
     def print_label(self, name: str, printer: str, label_size: str | None, fillings: list[dict],
                     count: int) -> tuple[str, list[dict], list[bytes]]:
         from mcp.server.mcpserver.exceptions import ToolError
+        # As a print job of the label designer is logged, without what the label says
+        logger.info('MCP print_label %s on %s, %d of each of %d fillings', name, printer, count, len(fillings or [{}]))
         fillings = fillings or [{}]
         saved = self._saved(name)
         name = saved['name']
@@ -442,6 +446,7 @@ class Tools:
     def print_text(self, lines: list[str], printer: str, label_size: str | None, count: int, font_size: int,
                    code: str | None, code_type: str) -> tuple[str, list[dict], list[bytes]]:
         from mcp.server.mcpserver.exceptions import ToolError
+        logger.info('MCP print_text on %s, %d labels', printer, count)
         if not (lines or code):
             raise ToolError('Give lines or a code to print')
         self._cap(count)
