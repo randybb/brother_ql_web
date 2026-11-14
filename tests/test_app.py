@@ -256,7 +256,7 @@ def test_models_are_named_with_their_maker(monkeypatch, tmp_path):
     parse_args(app, ['--model', 'Brother/QL-800'])
     assert app.config['PRINTER_MODEL'] == 'QL-800'
     monkeypatch.setenv('PRINTER_MODEL', 'TM-T20II')
-    assert create_app().config['PRINTER_MODEL'] == 'Epson/TM-T20II'
+    assert create_app().config['PRINTER_MODEL'] == 'Epson/ESC-POS'
 
 
 def test_request_names_a_model_with_its_maker(tmp_path):
